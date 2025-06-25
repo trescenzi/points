@@ -173,4 +173,12 @@ window.addEventListener('load', () => {
       value: userId,
     }));
   }, 30000);
+
+  window.onbeforeunload = () => {
+    ws.send(JSON.stringify({
+      command: "leaveRoom",
+      value: `${roomName}:${userId}`,
+    }));
+  }
 })
+

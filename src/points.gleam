@@ -106,6 +106,7 @@ fn handle_ws_message(state, message, conn) {
         Ok(message) -> {
           case message.command {
             "userPing" -> {
+              process.send(state, rooms.UserPing(message.value))
               echo "user pinged: " <> message.value
               mist.send_text_frame(conn, "userPong|" <> message.value)
             }
@@ -120,6 +121,7 @@ fn handle_ws_message(state, message, conn) {
             }
             "leaveRoom" -> {
               let #(room_name, user_id) = parse_user_and_room(message.value)
+              echo user_id <> " is leaving room " <> room_name
               let assert Ok(_) = case
                 process.call(state, 10, rooms.JoinRoom(_, room_name, user_id))
               {

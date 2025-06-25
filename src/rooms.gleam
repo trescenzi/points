@@ -59,16 +59,19 @@ pub fn check_for_stale_users(state: State) -> List(String) {
   |> dict.keys
 }
 
-pub fn drop_stale_users(state: State) -> Nil {
+pub fn drop_stale_users(state: State) -> State {
   let stale_users = check_for_stale_users(state)
-  use user <- list.each(stale_users)
-  echo "dropping user " <> user <> " from all rooms due to stale pings"
-  use _room_id, room <- dict.each(state.rooms)
-  process.send(room, room.DropUser(user))
+  {
+    use user <- list.each(stale_users)
+    echo "dropping user " <> user <> " from all rooms due to stale pings"
+    use _room_id, room <- dict.each(state.rooms)
+    process.send(room, room.DropUser(user))
+  }
+  State(..state, pings: dict.drop(state.pings, stale_users))
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
-  drop_stale_users(state)
+  let state = drop_stale_users(state)
   case message {
     GetRooms(reply:) -> {
       process.send(reply, state.rooms)
