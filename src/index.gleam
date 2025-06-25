@@ -1,6 +1,6 @@
 import nakai
-import nakai/html.{type Node}
 import nakai/attr
+import nakai/html.{type Node}
 
 fn head() -> Node {
   html.Head([
@@ -11,11 +11,9 @@ fn head() -> Node {
 }
 
 fn vote_option(quantity: String) -> Node {
-  html.div([
-    attr.class("vote_option"),
-    attr.data("quantity", quantity)],
-    [html.Text(quantity)]
-  )
+  html.div([attr.class("vote_option"), attr.data("quantity", quantity)], [
+    html.Text(quantity),
+  ])
 }
 
 fn body() -> Node {
@@ -25,14 +23,13 @@ fn body() -> Node {
       html.h2([], [
         html.span_text([], "Room: "),
         html.span_text([attr.id("room_name")], "<>"),
-      ])
+      ]),
     ]),
     html.main([], [
       html.button([attr.id("room_button")], [html.Text("Create Room")]),
-      html.button([
-        attr.id("share_button"),
-        attr.class("hidden")
-      ], [html.Text("Share")]),
+      html.button([attr.id("share_button"), attr.class("hidden")], [
+        html.Text("Share"),
+      ]),
       html.div([attr.id("voting_area")], [
         vote_option("0"),
         vote_option("1"),
@@ -43,7 +40,7 @@ fn body() -> Node {
         vote_option("13"),
       ]),
       html.div([attr.id("vote_area")], []),
-    ])
+    ]),
   ])
 }
 

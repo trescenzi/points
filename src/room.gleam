@@ -1,39 +1,29 @@
-import gleam/otp/actor
 import gleam/dict.{type Dict}
 import gleam/erlang/process
 import gleam/json
+import gleam/otp/actor
 
 pub type Message {
-  AddUser(
-    reply: process.Subject(Votes),
-    user_id: String
-  )
+  AddUser(reply: process.Subject(Votes), user_id: String)
   DropUser(user_id: String)
-  Vote(
-    reply: process.Subject(Votes),
-    user_id: String,
-    vote: Int
-  )
+  Vote(reply: process.Subject(Votes), user_id: String, vote: Int)
   GetVotes(reply: process.Subject(Votes))
   GetName(reply: process.Subject(String))
 }
 
-pub type Votes = Dict(String, Int)
+pub type Votes =
+  Dict(String, Int)
 
 pub type RoomState {
-  RoomState(
-    name: String, 
-    votes: Votes
-  )
+  RoomState(name: String, votes: Votes)
 }
 
 pub fn votes_to_json(votes: Votes) -> json.Json {
-  json.object([
-    #("votes", json.dict(votes, fn(string) { string }, json.int)),
-  ])
+  json.object([#("votes", json.dict(votes, fn(string) { string }, json.int))])
 }
 
-pub type Subject = process.Subject(Message)
+pub type Subject =
+  process.Subject(Message)
 
 pub fn handle_message(
   state: RoomState,

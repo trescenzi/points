@@ -1,22 +1,22 @@
-import gleam/dynamic/decode
-import rooms
-import room
 import gleam/bytes_tree
 import gleam/dict.{type Dict}
+import gleam/dynamic/decode
 import gleam/erlang/atom.{type Atom}
 import gleam/erlang/process
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
-import gleam/io
 import gleam/int
+import gleam/io
+import gleam/json
+import gleam/list
 import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
-import gleam/list
 import index
 import logging
 import mist.{type Connection, type ResponseData}
-import gleam/json
+import room
+import rooms
 
 @external(erlang, "logger", "update_primary_config")
 fn logger_update_primary_config(config: Dict(Atom, Atom)) -> Result(Nil, any)
@@ -43,11 +43,13 @@ pub fn main() {
         "Got a request from: " <> string.inspect(mist.get_client_info(req.body)),
       )
       case request.path_segments(req) {
-        []  | ["index"] ->
+        [] | ["index"] ->
           response.new(200)
-//          |> response.prepend_header("my-value", "abc")
-//          |> response.prepend_header("my-value", "123")
-          |> response.set_body(mist.Bytes(bytes_tree.from_string(index.index_page())))
+          //          |> response.prepend_header("my-value", "abc")
+          //          |> response.prepend_header("my-value", "123")
+          |> response.set_body(
+            mist.Bytes(bytes_tree.from_string(index.index_page())),
+          )
         ["public", ..rest] -> serve_file(rest)
         ["ws"] ->
           mist.websocket(
@@ -79,15 +81,15 @@ fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
 }
 
 fn decode_message(message: String) -> Result(WSMessage, json.DecodeError) {
-    json.parse(from: message, using: w_s_message_decoder())
+  json.parse(from: message, using: w_s_message_decoder())
 }
 
 fn parse_user_and_room(value: String) -> #(String, String) {
   case string.split(value, ":") {
-      [room_name, user_id] -> #(room_name, user_id)
-      [] -> #("", "")
-      [_, ..] -> #("", "")
-    }
+    [room_name, user_id] -> #(room_name, user_id)
+    [] -> #("", "")
+    [_, ..] -> #("", "")
+  }
 }
 
 fn handle_ws_message(state, message, conn) {
@@ -108,29 +110,52 @@ fn handle_ws_message(state, message, conn) {
               mist.send_text_frame(conn, "userPong|" <> message.value)
             }
             "createRoom" -> {
-              let assert Ok(_) = case process.call(state, 10, rooms.CreateRoom) {
-                Ok(room_name) -> mist.send_text_frame(conn, "createRoom|" <> room_name)
+              let assert Ok(_) = case
+                process.call(state, 10, rooms.CreateRoom)
+              {
+                Ok(room_name) ->
+                  mist.send_text_frame(conn, "createRoom|" <> room_name)
                 Error(_) -> mist.send_text_frame(conn, "createRoom|ERROR")
               }
             }
             "leaveRoom" -> {
               let #(room_name, user_id) = parse_user_and_room(message.value)
-              let assert Ok(_) = case process.call(
-                state, 10, rooms.JoinRoom(_, room_name, user_id)) {
-                Ok(votes) -> mist.send_text_frame(conn, "joinRoom|" <> json.to_string(room.votes_to_json(votes)))
-                Error(_) -> mist.send_text_frame(conn, "joinRoom|{\"error\": \"not_found\"}")
+              let assert Ok(_) = case
+                process.call(state, 10, rooms.JoinRoom(_, room_name, user_id))
+              {
+                Ok(votes) ->
+                  mist.send_text_frame(
+                    conn,
+                    "joinRoom|" <> json.to_string(room.votes_to_json(votes)),
+                  )
+                Error(_) ->
+                  mist.send_text_frame(
+                    conn,
+                    "joinRoom|{\"error\": \"not_found\"}",
+                  )
               }
             }
             "joinRoom" -> {
               let #(room_name, user_id) = parse_user_and_room(message.value)
-              let assert Ok(_) = case process.call(
-                state, 10, rooms.JoinRoom(_, room_name, user_id)) {
-                Ok(votes) -> mist.send_text_frame(conn, "joinRoom|" <> json.to_string(room.votes_to_json(votes)))
-                Error(_) -> mist.send_text_frame(conn, "joinRoom|{\"error\": \"not_found\"}")
+              let assert Ok(_) = case
+                process.call(state, 10, rooms.JoinRoom(_, room_name, user_id))
+              {
+                Ok(votes) ->
+                  mist.send_text_frame(
+                    conn,
+                    "joinRoom|" <> json.to_string(room.votes_to_json(votes)),
+                  )
+                Error(_) ->
+                  mist.send_text_frame(
+                    conn,
+                    "joinRoom|{\"error\": \"not_found\"}",
+                  )
               }
             }
             "vote" -> {
-              let #(room_name, user_id, vote) = case string.split(message.value, ":") {
+              let #(room_name, user_id, vote) = case
+                string.split(message.value, ":")
+              {
                 [room_name, user_id, vote] -> {
                   let vote = case int.parse(vote) {
                     Ok(vote) -> vote
@@ -141,13 +166,20 @@ fn handle_ws_message(state, message, conn) {
                 [] -> #("", "", -1)
                 [_, ..] -> #("", "", -1)
               }
-              let assert Ok(_) = case process.call(
-                state, 10, rooms.Vote(_, room_name, user_id, vote)) {
-                Ok(votes) -> mist.send_text_frame(conn, "vote|" <> json.to_string(room.votes_to_json(votes)))
-                Error(_) -> mist.send_text_frame(conn, "vote|{\"error\": \"not_found\"}")
+              let assert Ok(_) = case
+                process.call(state, 10, rooms.Vote(_, room_name, user_id, vote))
+              {
+                Ok(votes) ->
+                  mist.send_text_frame(
+                    conn,
+                    "vote|" <> json.to_string(room.votes_to_json(votes)),
+                  )
+                Error(_) ->
+                  mist.send_text_frame(conn, "vote|{\"error\": \"not_found\"}")
               }
             }
-            unknown -> mist.send_text_frame(conn, "Error unknown command:" <> unknown)
+            unknown ->
+              mist.send_text_frame(conn, "Error unknown command:" <> unknown)
           }
         }
         Error(_) -> {
@@ -186,8 +218,8 @@ fn serve_file(
 
 fn guess_content_type(path: String) -> String {
   case list.reverse(string.split(path, ".")) {
-    ["js", .._rest] -> "text/javascript"
-    ["css", .._rest] -> "text/css"
+    ["js", ..] -> "text/javascript"
+    ["css", ..] -> "text/css"
     _ -> "text/plain"
   }
 }

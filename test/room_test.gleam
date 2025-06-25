@@ -1,7 +1,7 @@
+import gleam/dict
+import gleam/erlang/process
 import gleeunit
 import room
-import gleam/erlang/process
-import gleam/dict
 
 pub fn main() -> Nil {
   gleeunit.main()
@@ -44,7 +44,7 @@ pub fn multiple_users_test() {
   process.call(r.data, 10, room.AddUser(_, "user2"))
   process.call(r.data, 10, room.AddUser(_, "user3"))
   let votes = process.call(r.data, 10, room.GetVotes)
-  dict.map_values(votes, fn (_user, vote) {
+  dict.map_values(votes, fn(_user, vote) {
     assert vote == -1
   })
 
