@@ -1,3 +1,6 @@
+import blah/other
+import blah/word
+import chip
 import gleam/bytes_tree
 import gleam/dict.{type Dict}
 import gleam/dynamic/decode
@@ -15,9 +18,6 @@ import gleam/string
 import index
 import logging
 import mist.{type Connection, type ResponseData}
-import chip
-import blah/word
-import blah/other
 
 @external(erlang, "logger", "update_primary_config")
 fn logger_update_primary_config(config: Dict(Atom, Atom)) -> Result(Nil, any)
@@ -52,13 +52,13 @@ pub fn main() {
           mist.websocket(
             request: req,
             on_init: create_ws_actor(_, registry.data),
-            on_close: fn(_state) { 
+            on_close: fn(_state) {
               // todo broadcast leave
               io.println("goodbye!")
             },
             handler: fn(state: WebsocketState, message, conn) {
               handle_ws_message(state, message, conn, registry.data)
-            }
+            },
           )
 
         _ -> not_found
@@ -72,8 +72,12 @@ pub fn main() {
   process.sleep_forever()
 }
 
-fn handle_ws_message(state: WebsocketState, message, conn, connection_registry: chip.Registry(ConnectionMessage,String)) {
-
+fn handle_ws_message(
+  state: WebsocketState,
+  message,
+  conn,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
   case message {
     mist.Text("ping") -> {
       echo "ping"
@@ -97,7 +101,7 @@ fn handle_ws_message(state: WebsocketState, message, conn, connection_registry: 
               chip.register(connection_registry, room_name, state.subject)
               let members = chip.members(connection_registry, room_name, 50)
               // inform every member of the newly joined voter
-              list.map(members, fn (subject) {
+              list.map(members, fn(subject) {
                 process.send(subject, Voted(state.vote))
               })
               let _ = mist.send_text_frame(conn, "joinRoom|success")
@@ -114,7 +118,12 @@ fn handle_ws_message(state: WebsocketState, message, conn, connection_registry: 
                 Ok(vote) -> UserVote(vote: Some(vote), user: state.vote.user)
                 Error(_) -> state.vote
               }
-              broadcast_vote(vote, room_name, connection_registry, state.subject)
+              broadcast_vote(
+                vote,
+                room_name,
+                connection_registry,
+                state.subject,
+              )
               let _ = mist.send_text_frame(conn, "vote|success")
 
               WebsocketState(..state, vote:)
@@ -129,10 +138,15 @@ fn handle_ws_message(state: WebsocketState, message, conn, connection_registry: 
     mist.Custom(connection_message) -> {
       let new_votes = case connection_message {
         Voted(new_vote) -> {
-          let votes = dict.insert(state.votes, new_vote.user, new_vote.vote)
-          |> dict.insert(state.vote.user, state.vote.vote)
+          let votes =
+            dict.insert(state.votes, new_vote.user, new_vote.vote)
+            |> dict.insert(state.vote.user, state.vote.vote)
 
-          let _ = mist.send_text_frame(conn, "votes|" <> json.to_string(votes_to_json(votes)))
+          let _ =
+            mist.send_text_frame(
+              conn,
+              "votes|" <> json.to_string(votes_to_json(votes)),
+            )
           votes
         }
         GetVote(reply) -> {
@@ -152,15 +166,19 @@ fn handle_ws_message(state: WebsocketState, message, conn, connection_registry: 
 type UserVote {
   UserVote(vote: Option(Int), user: String)
 }
+
 type WebsocketState {
   WebsocketState(
     subject: process.Subject(ConnectionMessage),
     vote: UserVote,
-    votes: Dict(String, Option(Int))
+    votes: Dict(String, Option(Int)),
   )
 }
 
-fn create_ws_actor(_conn, connection_registry: chip.Registry(ConnectionMessage,String)) {
+fn create_ws_actor(
+  _conn,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
   let self = process.new_subject()
   let selector = process.new_selector() |> process.select(self)
 
@@ -179,6 +197,7 @@ type ConnectionMessage {
   GetVote(process.Subject(UserVote))
   Voted(UserVote)
 }
+
 fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
   use command <- decode.field("command", decode.string)
   use value <- decode.field("value", decode.string)
@@ -212,10 +231,9 @@ fn broadcast_vote(
 }
 
 pub fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
-  let votes = dict.map_values(votes, fn(_user, vote) {vote_to_int(vote)})
+  let votes = dict.map_values(votes, fn(_user, vote) { vote_to_int(vote) })
   json.object([#("votes", json.dict(votes, fn(string) { string }, json.int))])
 }
-
 
 fn serve_file(
   //_req: Request(Connection),
