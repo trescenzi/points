@@ -55,7 +55,7 @@ function connect(endpoint) {
 
 function drawVote(user, vote, myVote, hidden = true) {
   const div = document.createElement('div');
-  div.innerText = vote;
+  div.innerText = vote == -1 ? "?" : vote;
   div.classList.add("vote");
   div.dataset.user = user;
   myVote && div.classList.add("my_vote");
@@ -68,8 +68,9 @@ function revealVotes() {
 }
 
 function drawVotes(votes, currentUser) {
-  const voteDivs = votes.map(({userId, vote}) => drawVote(userId, vote, userId === currentUser, userId !== currentUser))
-  document.querySelector("#voting_area").replaceChildren(voteDivs); 
+  console.log("drawing votes", votes);
+  const voteDivs = Object.entries(votes.votes).map?.(([userId, vote]) => drawVote(userId, vote, userId === currentUser, userId !== currentUser))
+  document.querySelector("#vote_area").replaceChildren(...voteDivs); 
 }
 
 function getOrSetUserId() {
@@ -91,7 +92,6 @@ window.addEventListener('load', () => {
   const userId = getOrSetUserId();
 
   votingArea.addEventListener("click", (e) => {
-    console.log("poop")
     const url = new URL(window.location)
     const roomName = url.searchParams.get("roomName");
     if (!roomName) {
@@ -159,14 +159,7 @@ window.addEventListener('load', () => {
 
   ws.addCallback({
     callback: (message) => {
-      const votes = JSON.parse(message.replace("joinRoom|", ""));
-      if (votes.error) {
-        console.warn("room not found");
-        setRoom(null);
-      } else {
-        console.log('votes in room', votes);
-        drawVotes(votes);
-      }
+      console.log(message)
     },
     filter: matchesResponse("joinRoom")
   });
