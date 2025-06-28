@@ -24,6 +24,7 @@ logging = ">= 1.3.0 and < 2.0.0"
 nakai = ">= 1.1.2 and < 2.0.0"
 gleam_json = ">= 3.0.1 and < 4.0.0"
 gleam_time = ">= 1.2.0 and < 2.0.0"
+chip = { git = "https://github.com/trescenzi/chip", ref = "upgrade-to-erlang-otp-v1" }
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

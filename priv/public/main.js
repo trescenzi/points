@@ -17,13 +17,23 @@ function connect(endpoint) {
     callbacks.forEach(({filter, callback}) => filter(data) && callback(data));
   }
 
+  ws.onerror = (error) => {
+    console.error(error);
+  }
+
+  ws.onclose = (message) => {
+    console.log("CLOSED", message);
+  }
+
   return {
     send: (msg) => {
-      if (ws.readyState !== WebSocket.OPEN) {
-        backlog.push(msg);
-      } else if (ws.readyState === WebSocket.CLOSED ||
+      console.log("ws sending", msg, ws.readyState);
+      if (ws.readyState === WebSocket.CLOSED ||
                  ws.readyState === WebSocket.CLOSING) {
         console.warn(`Message sent to closed websocket ${msg}`);
+      } if (ws.readyState !== WebSocket.OPEN) {
+        console.log("ws note open", msg);
+        backlog.push(msg);
       } else {
         ws.send(msg)
       }
@@ -43,11 +53,23 @@ function connect(endpoint) {
   }
 }
 
-function drawVote(vote, hidden = true) {
+function drawVote(user, vote, myVote, hidden = true) {
   const div = document.createElement('div');
   div.innerText = vote;
   div.classList.add("vote");
+  div.dataset.user = user;
+  myVote && div.classList.add("my_vote");
   hidden && div.classList.add("hidden_vote");
+  return div;
+}
+
+function revealVotes() {
+  [...document.querySelectorAll('.vote')].forEach(vote => vote.classList.remove('hidden_vote'));
+}
+
+function drawVotes(votes, currentUser) {
+  const voteDivs = votes.map(({userId, vote}) => drawVote(userId, vote, userId === currentUser, userId !== currentUser))
+  document.querySelector("#voting_area").replaceChildren(voteDivs); 
 }
 
 function getOrSetUserId() {
@@ -69,6 +91,7 @@ window.addEventListener('load', () => {
   const userId = getOrSetUserId();
 
   votingArea.addEventListener("click", (e) => {
+    console.log("poop")
     const url = new URL(window.location)
     const roomName = url.searchParams.get("roomName");
     if (!roomName) {
@@ -76,7 +99,7 @@ window.addEventListener('load', () => {
       return;
     }
     vote = e.target.dataset?.quantity;
-    ws.send(JSON.stringify({command: "vote", value: `${roomName}:${userId}:${vote}`}));
+    ws.send(JSON.stringify({command: "vote", value: `${roomName}:${vote}`}));
     console.log(vote);
   })
 
@@ -96,7 +119,7 @@ window.addEventListener('load', () => {
   })
 
   createRoomButton.addEventListener("click", () => {
-    ws.send(JSON.stringify({command: "createRoom", value: ""}));
+    ws.send("createRoom");
   })
 
   function setRoom(roomName) {
@@ -123,7 +146,7 @@ window.addEventListener('load', () => {
   if (initialRoom) {
     ws.send(JSON.stringify({
       command: "joinRoom",
-      value: `${initialRoom}:${userId}`,
+      value: `${initialRoom}`,
     }))
     setRoom(initialRoom);
   }
@@ -142,6 +165,7 @@ window.addEventListener('load', () => {
         setRoom(null);
       } else {
         console.log('votes in room', votes);
+        drawVotes(votes);
       }
     },
     filter: matchesResponse("joinRoom")
@@ -153,7 +177,7 @@ window.addEventListener('load', () => {
       setRoom(roomName);
       ws.send(JSON.stringify({
         command: "joinRoom",
-        value: `${roomName}:${userId}`,
+        value: `${roomName}`,
       }))
     },
     filter: matchesResponse("createRoom")
@@ -163,6 +187,7 @@ window.addEventListener('load', () => {
     callback: (message) => {
       const votes = JSON.parse(message.replace("votes|", ""));
       console.log("GOT VOTES", votes);
+      drawVotes(votes);
     },
     filter: matchesResponse("votes")
   })
