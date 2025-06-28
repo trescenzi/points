@@ -52,9 +52,10 @@ pub fn main() {
           mist.websocket(
             request: req,
             on_init: create_ws_actor(_, registry.data),
-            on_close: fn(_state) {
+            on_close: fn(state) {
               // todo broadcast leave
-              io.println("goodbye!")
+              broadcast_leave(state.vote.user, registry.data)
+              io.println("goodbye " <> state.vote.user <> "!")
             },
             handler: fn(state: WebsocketState, message, conn) {
               handle_ws_message(state, message, conn, registry.data)
@@ -118,12 +119,7 @@ fn handle_ws_message(
                 Ok(vote) -> UserVote(vote: Some(vote), user: state.vote.user)
                 Error(_) -> state.vote
               }
-              broadcast_vote(
-                vote,
-                room_name,
-                connection_registry,
-                state.subject,
-              )
+              broadcast_vote(vote, room_name, connection_registry)
               let _ = mist.send_text_frame(conn, "vote|success")
 
               WebsocketState(..state, vote:)
@@ -152,6 +148,17 @@ fn handle_ws_message(
         GetVote(reply) -> {
           process.send(reply, state.vote)
           state.votes
+        }
+        Left(user) -> {
+          let votes =
+            state.votes
+            |> dict.filter(fn(user_id, _vote) { user != user_id })
+          let _ =
+            mist.send_text_frame(
+              conn,
+              "votes|" <> json.to_string(votes_to_json(votes)),
+            )
+          votes
         }
       }
       mist.continue(WebsocketState(..state, votes: new_votes))
@@ -196,6 +203,7 @@ type WSMessage {
 type ConnectionMessage {
   GetVote(process.Subject(UserVote))
   Voted(UserVote)
+  Left(String)
 }
 
 fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
@@ -219,15 +227,17 @@ fn broadcast_vote(
   vote: UserVote,
   room_name: String,
   connection_registry: chip.Registry(ConnectionMessage, String),
-  current_subject: process.Subject(ConnectionMessage),
 ) {
   let members = chip.members(connection_registry, room_name, 50)
-  list.each(members, fn(subject) {
-    case subject == current_subject {
-      True -> Nil
-      False -> process.send(subject, Voted(vote))
-    }
-  })
+  list.each(members, fn(subject) { process.send(subject, Voted(vote)) })
+}
+
+fn broadcast_leave(
+  user: String,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
+  let members = chip.members(connection_registry, "default", 50)
+  list.each(members, fn(subject) { process.send(subject, Left(user)) })
 }
 
 pub fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
