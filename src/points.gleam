@@ -103,7 +103,7 @@ fn handle_ws_message(
             "joinRoom" -> {
               let room_name = message.value
               chip.register(connection_registry, room_name, state.subject)
-              broadcast_vote(state.vote, room_name, connection_registry)
+              broadcast_join(room_name, connection_registry)
               let _ = mist.send_text_frame(conn, "joinRoom|success")
               state
             }
@@ -168,6 +168,10 @@ fn handle_ws_message(
           let _ = communicate_votes(votes, conn)
           WebsocketState(..state, votes:, vote: UserVote(..state.vote, vote: None))
         }
+        Join(room_name) -> {
+          broadcast_vote(state.vote, room_name, connection_registry)
+          state
+        }
       }
       mist.continue(state)
     }
@@ -215,6 +219,7 @@ type ConnectionMessage {
   Left(String)
   Show
   Reset
+  Join(String)
 }
 
 fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
@@ -234,6 +239,14 @@ fn broadcast_vote(
 ) {
   let members = chip.members(connection_registry, room_name, 50)
   list.each(members, fn(subject) { process.send(subject, Voted(vote)) })
+}
+
+fn broadcast_join(
+  room_name: String,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
+  let members = chip.members(connection_registry, room_name, 50)
+  list.each(members, fn(subject) { process.send(subject, Join(room_name)) })
 }
 
 fn broadcast_leave(
