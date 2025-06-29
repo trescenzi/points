@@ -227,13 +227,6 @@ fn decode_message(message: String) -> Result(WSMessage, json.DecodeError) {
   json.parse(from: message, using: w_s_message_decoder())
 }
 
-fn vote_to_int(vote: Option(Int)) -> Int {
-  case vote {
-    Some(v) -> v
-    None -> -1
-  }
-}
-
 fn broadcast_vote(
   vote: UserVote,
   room_name: String,
@@ -268,8 +261,7 @@ fn broadcast_reset(
 }
 
 pub fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
-  let votes = dict.map_values(votes, fn(_user, vote) { vote_to_int(vote) })
-  json.object([#("votes", json.dict(votes, fn(string) { string }, json.int))])
+  json.object([#("votes", json.dict(votes, fn(key) { key }, json.nullable(_, json.int)))])
 }
 
 fn communicate_votes(votes: Dict(String, Option(Int)), connection: mist.WebsocketConnection) {

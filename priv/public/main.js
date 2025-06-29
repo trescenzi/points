@@ -68,7 +68,7 @@ function drawVote(user, vote, myVote, hidden = true) {
   const div = document.createElement('div');
   const front = document.createElement('div');
   const back = document.createElement('div');
-  front.innerText = vote == -1 ? "?" : vote;
+  front.innerText = vote === -1 || !vote ? "?" : vote;
   back.innerText = "?"
   front.classList.add("front");
   back.classList.add("back");
