@@ -69,7 +69,7 @@ pub fn main() {
       }
     }
     |> mist.new
-    |> mist.bind("localhost")
+    |> mist.bind("0.0.0.0")
     |> mist.port(9000)
     |> mist.start
 

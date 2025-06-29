@@ -1,60 +1,208 @@
+:root {
+  --light-blue: #edf2fb;
+  --black: #343434;
+
+  --blue: #a0c4ff;
+  --green: #caffbf;
+  --orange: #ffd6a5;
+  --purple: #bdb2ff;
+
+  --light: var(--light-blue);
+  --dark: var(--black);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dark: var(--light-blue);
+    --light: var(--black);
+  }
+}
+
+html {
+  background-color: var(--light);
+}
 .hidden {
   display: none;
 }
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 100px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--dark);
+  margin: 1em;
+}
+
+h1, h2 {
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-weight: 900;
+  font-size: 52px;
+}
+
+.buttons {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@font-face {
+  font-family: "NationalPark";
+  src: url("/public/NationalPark-VariableVF.woff2") format("woff2");
+}
+
+body {
+  font-family: NationalPark;
+}
 
 .vote_card {
-  padding: 1.25em 1em;
-  border: 1px solid blue;
+  position: relative;
+  z-index: 1;
   border-radius: 8px;
-  min-width: 24px;
   text-align: center;
-  font-size: 24px;
+  font-size: 36px;
   font-weight: bold;
   perspective: 1000px;
   transition: transform 0.8s;
   transform-style: preserve-3d;
-  display:grid;
+  display: grid;
+  width: 125px;
+  height: 175px;
+  border: 2px solid var(--black);
 }
 
 .hidden_vote.vote_card {
   transform: rotateY(180deg);
 }
 
+
 .front, .back {
+  border-radius: 8px;
+  display: grid;
+  grid-template-areas: "tl tm tr"
+                       "ml mm mr"
+                       "bl bm br";
+  position: relative;
+  background-color: var(--blue);
+  grid-area: 1/-1;
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
-.front, .back {
-  grid-area: 1/-1;
-  -webkit-backface-visibility: hidden; /* Safari */
-  backface-visibility: hidden;
+.tl, .tr, .m, .bl, .br {
+  display: grid;
+  align-content: center;
+}
+.tl, .tr, .bl, .br {
+  font-size: 16px;
+}
+
+.tl {
+  grid-area: tl;
+}
+.tr {
+  grid-area: tr;
+}
+.m {
+  grid-area: mm;
+}
+.bl {
+  grid-area: bl;
+}
+.br {
+  grid-area: br;
 }
 
 .back {
   transform: rotateY(180deg);
-  background-color: white;
+  background-color: var(--purple);
+}
+
+.winner {
+  background-color: var(--green);
 }
 
 .my_vote .back {
   visibility: hidden;
 }
 
-.vote_option {
-}
 .vote_option:hover {
-  background-color: lightgrey;
   cursor: pointer;
 }
 
 #voting_area, #vote_area {
   display: flex;
-  gap: 1em;
-  margin: 3em;
+  gap: 2em;
+  margin: 3em 0;
   flex-wrap: wrap;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background: darkgrey;
+button {
+  align-items: center;
+  background-color: var(--orange);
+  border: 2px solid var(--black);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: var(--black);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 24px;
+  height: 48px;
+  justify-content: center;
+  line-height: 24px;
+  padding: 0 25px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+}
+
+button:after, .front:after {
+  background-color: var(--dark);
+  border-radius: 8px;
+  content: "";
+  display: block;
+  height: 100%;
+  left: 0;
+  width: 100%;
+  position: absolute;
+  top: -2px;
+  transform: translate(8px, 8px);
+  transition: transform .2s ease-out;
+  z-index: -1;
+}
+
+button:hover:after {
+  transform: translate(2px, 2px);
+}
+
+.front:hover:after, .back:hover:after {
+  transform: translate(2px, 4px);
+}
+
+button:active {
+  background-color: #ffdeda;
+  outline: 0;
+}
+
+button:hover {
+  outline: 0;
+}
+
+@media (min-width: 768px) {
+  button {
+    padding: 0 40px;
   }
 }

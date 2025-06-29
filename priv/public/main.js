@@ -68,8 +68,27 @@ function drawVote(user, vote, myVote, hidden = true) {
   const div = document.createElement('div');
   const front = document.createElement('div');
   const back = document.createElement('div');
-  front.innerText = vote === -1 || !vote ? "?" : vote;
-  back.innerText = "?"
+  const tl = document.createElement('div');
+  tl.classList.add("tl");
+  const tr = document.createElement('div');
+  tr.classList.add("tr");
+  const m = document.createElement('div');
+  m.classList.add("m");
+  const bl = document.createElement('div');
+  bl.classList.add("bl");
+  const br = document.createElement('div');
+  br.classList.add("br");
+  const value = vote === -1 || vote == null ? "?" : vote;
+  tl.innerText = value;
+  tr.innerText = value;
+  m.innerText = value;
+  bl.innerText = value;
+  br.innerText = value
+  front.replaceChildren(tl, tr, m, bl, br)
+  const backInner = document.createElement('div');
+  backInner.classList.add("m");
+  backInner.innerText = "?";
+  back.replaceChildren(backInner);
   front.classList.add("front");
   back.classList.add("back");
   div.classList.add("vote");
@@ -102,7 +121,8 @@ function getOrSetUserId() {
 }
 
 window.addEventListener('load', () => {
-  const ws = connect('ws://localhost:9000/ws');
+  const wsLocation = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws"
+  const ws = connect(wsLocation);
   const roomNameDiv = document.querySelector("#room_name");
   const createRoomButton = document.querySelector("#room_button");
   const shareButton = document.querySelector("#share_button");
