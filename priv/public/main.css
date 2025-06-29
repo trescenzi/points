@@ -1,3 +1,60 @@
 .hidden {
   display: none;
 }
+
+.vote_card {
+  padding: 1em;
+  border: 1px solid blue;
+  border-radius: 8px;
+  min-width: 24px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  perspective: 1000px;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+  display:grid;
+}
+
+.hidden_vote.vote_card {
+  transform: rotateY(180deg);
+}
+
+.front, .back {
+  backface-visibility: hidden;
+}
+
+.front, .back {
+  grid-area: 1/-1;
+  -webkit-backface-visibility: hidden; /* Safari */
+  backface-visibility: hidden;
+}
+
+.back {
+  transform: rotateY(180deg);
+  background-color: white;
+}
+
+.my_vote .back {
+  visibility: hidden;
+}
+
+.vote_option {
+}
+.vote_option:hover {
+  background-color: lightgrey;
+  cursor: pointer;
+}
+
+#voting_area, #vote_area {
+  display: flex;
+  gap: 1em;
+  margin: 3em;
+  flex-wrap: wrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: darkgrey;
+  }
+}

@@ -41,6 +41,10 @@ pub fn main() {
         logging.Info,
         "Got a request from: " <> string.inspect(mist.get_client_info(req.body)),
       )
+      logging.log(
+        logging.Info,
+        "path: " <> string.inspect(req.path),
+      )
       case request.path_segments(req) {
         [] | ["index"] ->
           response.new(200)
@@ -53,7 +57,6 @@ pub fn main() {
             request: req,
             on_init: create_ws_actor(_, registry.data),
             on_close: fn(state) {
-              // todo broadcast leave
               broadcast_leave(state.vote.user, registry.data)
               io.println("goodbye " <> state.vote.user <> "!")
             },
@@ -100,12 +103,13 @@ fn handle_ws_message(
             "joinRoom" -> {
               let room_name = message.value
               chip.register(connection_registry, room_name, state.subject)
-              let members = chip.members(connection_registry, room_name, 50)
-              // inform every member of the newly joined voter
-              list.map(members, fn(subject) {
-                process.send(subject, Voted(state.vote))
-              })
+              broadcast_vote(state.vote, room_name, connection_registry)
               let _ = mist.send_text_frame(conn, "joinRoom|success")
+              state
+            }
+            "showVotes" -> {
+              let room_name = message.value
+              broadcast_show(room_name, connection_registry)
               state
             }
             "vote" -> {
@@ -138,27 +142,20 @@ fn handle_ws_message(
             dict.insert(state.votes, new_vote.user, new_vote.vote)
             |> dict.insert(state.vote.user, state.vote.vote)
 
-          let _ =
-            mist.send_text_frame(
-              conn,
-              "votes|" <> json.to_string(votes_to_json(votes)),
-            )
+          let _ = communicate_votes(votes, conn)
           votes
-        }
-        GetVote(reply) -> {
-          process.send(reply, state.vote)
-          state.votes
         }
         Left(user) -> {
           let votes =
             state.votes
             |> dict.filter(fn(user_id, _vote) { user != user_id })
-          let _ =
-            mist.send_text_frame(
-              conn,
-              "votes|" <> json.to_string(votes_to_json(votes)),
-            )
+          let _ = communicate_votes(votes, conn)
           votes
+        }
+        Show -> {
+          let _ = communicate_votes(state.votes, conn)
+          let _ = mist.send_text_frame(conn, "showVotes|now")
+          state.votes
         }
       }
       mist.continue(WebsocketState(..state, votes: new_votes))
@@ -183,7 +180,7 @@ type WebsocketState {
 }
 
 fn create_ws_actor(
-  _conn,
+  conn,
   connection_registry: chip.Registry(ConnectionMessage, String),
 ) {
   let self = process.new_subject()
@@ -193,6 +190,8 @@ fn create_ws_actor(
   // we start with no vote and a uuid; maybe someday the user can have a name
   let uv = UserVote(vote: None, user: other.uuid())
 
+  let _ = mist.send_text_frame(conn, "connect|" <> uv.user)
+
   #(WebsocketState(subject: self, vote: uv, votes: dict.new()), Some(selector))
 }
 
@@ -201,9 +200,9 @@ type WSMessage {
 }
 
 type ConnectionMessage {
-  GetVote(process.Subject(UserVote))
   Voted(UserVote)
   Left(String)
+  Show
 }
 
 fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
@@ -240,9 +239,21 @@ fn broadcast_leave(
   list.each(members, fn(subject) { process.send(subject, Left(user)) })
 }
 
+fn broadcast_show(
+  room_name: String,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
+  let members = chip.members(connection_registry, room_name, 50)
+  list.each(members, fn(subject) { process.send(subject, Show) })
+}
+
 pub fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
   let votes = dict.map_values(votes, fn(_user, vote) { vote_to_int(vote) })
   json.object([#("votes", json.dict(votes, fn(string) { string }, json.int))])
+}
+
+fn communicate_votes(votes: Dict(String, Option(Int)), connection: mist.WebsocketConnection) {
+  mist.send_text_frame(connection, "votes|" <> json.to_string(votes_to_json(votes)))
 }
 
 fn serve_file(
@@ -250,6 +261,7 @@ fn serve_file(
   path: List(String),
 ) -> Response(ResponseData) {
   let file_path = "./priv/public/" <> string.join(path, with: "/")
+  echo file_path
   mist.send_file(file_path, offset: 0, limit: None)
   |> result.map(fn(file) {
     let content_type = guess_content_type(file_path)

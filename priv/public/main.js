@@ -6,6 +6,7 @@ function connect(endpoint) {
   const callbacks = []
   const messages = [];
   const backlog = [];
+  let user_id = '';
   ws.onopen = () => {
     ws.send('ping')
     backlog.forEach(message => ws.send(message))
@@ -25,6 +26,15 @@ function connect(endpoint) {
     console.log("CLOSED", message);
   }
 
+  callbacks.push({
+    filter: (message) => message.startsWith("connect"),
+    callback: (message) => {
+      const id = message.replace("connect|", "");
+      console.log("connected as id:", id);
+      user_id = id
+    },
+  })
+
   return {
     send: (msg) => {
       console.log("ws sending", msg, ws.readyState);
@@ -38,6 +48,7 @@ function connect(endpoint) {
         ws.send(msg)
       }
     },
+    get_id: () => user_id,
     close: ()  => {
       callbacks = []
       messages = []
@@ -55,9 +66,17 @@ function connect(endpoint) {
 
 function drawVote(user, vote, myVote, hidden = true) {
   const div = document.createElement('div');
-  div.innerText = vote == -1 ? "?" : vote;
+  const front = document.createElement('div');
+  const back = document.createElement('div');
+  front.innerText = vote == -1 ? "?" : vote;
+  back.innerText = "?"
+  front.classList.add("front");
+  back.classList.add("back");
   div.classList.add("vote");
+  div.classList.add("vote_card");
   div.dataset.user = user;
+  div.appendChild(front);
+  div.appendChild(back);
   myVote && div.classList.add("my_vote");
   hidden && div.classList.add("hidden_vote");
   return div;
@@ -88,8 +107,17 @@ window.addEventListener('load', () => {
   const roomNameDiv = document.querySelector("#room_name");
   const createRoomButton = document.querySelector("#room_button");
   const shareButton = document.querySelector("#share_button");
+  const showButton = document.querySelector("#show_button");
   const votingArea = document.querySelector('#voting_area');
-  const userId = getOrSetUserId();
+
+  ws.addCallback({
+    callback: (message) => {
+      const votes = JSON.parse(message.replace("votes|", ""));
+      console.log("GOT VOTES", votes);
+      drawVotes(votes, ws.get_id());
+    },
+    filter: matchesResponse("connect")
+  })
 
   votingArea.addEventListener("click", (e) => {
     const url = new URL(window.location)
@@ -116,6 +144,12 @@ window.addEventListener('load', () => {
       .catch(err => {
         console.error('Failed to copy URL: ', err);
       });
+  })
+
+  showButton.addEventListener("click", () => {
+    const url = new URL(window.location)
+    const roomName = url.searchParams.get("roomName");
+    ws.send(JSON.stringify({command: "showVotes", value: roomName}));
   })
 
   createRoomButton.addEventListener("click", () => {
@@ -180,9 +214,18 @@ window.addEventListener('load', () => {
     callback: (message) => {
       const votes = JSON.parse(message.replace("votes|", ""));
       console.log("GOT VOTES", votes);
-      drawVotes(votes);
+      drawVotes(votes, ws.get_id());
     },
     filter: matchesResponse("votes")
+  })
+
+  ws.addCallback({
+    callback: () => {
+      [...document.querySelectorAll(".vote_card.hidden_vote")].forEach(card => {
+        card.classList.remove("hidden_vote")
+      })
+    },
+    filter: matchesResponse("showVotes")
   })
 
   setInterval(() => {

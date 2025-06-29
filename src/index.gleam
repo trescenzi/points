@@ -11,9 +11,10 @@ fn head() -> Node {
 }
 
 fn vote_option(quantity: String) -> Node {
-  html.div([attr.class("vote_option"), attr.data("quantity", quantity)], [
-    html.Text(quantity),
-  ])
+  html.div(
+    [attr.class("vote_option vote_card"), attr.data("quantity", quantity)],
+    [html.Text(quantity)],
+  )
 }
 
 fn body() -> Node {
@@ -30,6 +31,7 @@ fn body() -> Node {
       html.button([attr.id("share_button"), attr.class("hidden")], [
         html.Text("Share"),
       ]),
+      html.button([attr.id("show_button")], [html.Text("Show Votes")]),
       html.div([attr.id("voting_area")], [
         vote_option("0"),
         vote_option("1"),
