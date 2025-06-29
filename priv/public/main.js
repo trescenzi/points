@@ -82,13 +82,12 @@ function drawVote(user, vote, myVote, hidden = true) {
   return div;
 }
 
-function revealVotes() {
-  [...document.querySelectorAll('.vote')].forEach(vote => vote.classList.remove('hidden_vote'));
-}
-
 function drawVotes(votes, currentUser) {
   console.log("drawing votes", votes);
-  const voteDivs = Object.entries(votes.votes).map?.(([userId, vote]) => drawVote(userId, vote, userId === currentUser, userId !== currentUser))
+  const voteDivs = Object.entries(votes.votes)
+    .map(([userId, vote]) => drawVote(userId, vote, userId === currentUser, userId !== currentUser))
+    // your vote is always first
+    .sort((a, b) => a.classList.contains("my_vote") ? -1 : b.classList.contains("my_vote") ? 1 : 0)
   document.querySelector("#vote_area").replaceChildren(...voteDivs); 
 }
 
