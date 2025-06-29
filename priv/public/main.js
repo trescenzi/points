@@ -108,13 +108,15 @@ window.addEventListener('load', () => {
   const createRoomButton = document.querySelector("#room_button");
   const shareButton = document.querySelector("#share_button");
   const showButton = document.querySelector("#show_button");
+  const resetButton = document.querySelector("#reset_button");
   const votingArea = document.querySelector('#voting_area');
+  let votesVisible = false;
 
   ws.addCallback({
     callback: (message) => {
       const votes = JSON.parse(message.replace("votes|", ""));
       console.log("GOT VOTES", votes);
-      drawVotes(votes, ws.get_id());
+      drawVotes(votes, ws.get_id(), votesVisible);
     },
     filter: matchesResponse("connect")
   })
@@ -151,6 +153,12 @@ window.addEventListener('load', () => {
     const roomName = url.searchParams.get("roomName");
     ws.send(JSON.stringify({command: "showVotes", value: roomName}));
   })
+
+  resetButton.addEventListener("click", () => {
+    const url = new URL(window.location)
+    const roomName = url.searchParams.get("roomName");
+    ws.send(JSON.stringify({command: "resetVotes", value: roomName}));
+  });
 
   createRoomButton.addEventListener("click", () => {
     ws.send("createRoom");
@@ -214,18 +222,29 @@ window.addEventListener('load', () => {
     callback: (message) => {
       const votes = JSON.parse(message.replace("votes|", ""));
       console.log("GOT VOTES", votes);
-      drawVotes(votes, ws.get_id());
+      drawVotes(votes, ws.get_id(), votesVisible);
     },
     filter: matchesResponse("votes")
   })
 
   ws.addCallback({
     callback: () => {
+      votesVisible = true;
       [...document.querySelectorAll(".vote_card.hidden_vote")].forEach(card => {
         card.classList.remove("hidden_vote")
       })
     },
     filter: matchesResponse("showVotes")
+  })
+
+  ws.addCallback({
+    callback: () => {
+      votesVisible = false;
+      [...document.querySelectorAll("#vote_area .vote_card:not(.my_vote)")].forEach(card => {
+        card.classList.add("hidden_vote")
+      })
+    },
+    filter: matchesResponse("resetVotes")
   })
 
   setInterval(() => {

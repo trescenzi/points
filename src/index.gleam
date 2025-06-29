@@ -32,6 +32,7 @@ fn body() -> Node {
         html.Text("Share"),
       ]),
       html.button([attr.id("show_button")], [html.Text("Show Votes")]),
+      html.button([attr.id("reset_button")], [html.Text("Reset Votes")]),
       html.div([attr.id("voting_area")], [
         vote_option("0"),
         vote_option("1"),

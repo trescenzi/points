@@ -112,6 +112,11 @@ fn handle_ws_message(
               broadcast_show(room_name, connection_registry)
               state
             }
+            "resetVotes" -> {
+              let room_name = message.value
+              broadcast_reset(room_name, connection_registry)
+              state
+            }
             "vote" -> {
               let #(room_name, vote) = case string.split(message.value, ":") {
                 [room_name, user_id] -> #(room_name, user_id)
@@ -136,29 +141,35 @@ fn handle_ws_message(
       mist.continue(new_state)
     }
     mist.Custom(connection_message) -> {
-      let new_votes = case connection_message {
+      let state = case connection_message {
         Voted(new_vote) -> {
           let votes =
             dict.insert(state.votes, new_vote.user, new_vote.vote)
             |> dict.insert(state.vote.user, state.vote.vote)
 
           let _ = communicate_votes(votes, conn)
-          votes
+          WebsocketState(..state, votes:)
         }
         Left(user) -> {
           let votes =
             state.votes
             |> dict.filter(fn(user_id, _vote) { user != user_id })
           let _ = communicate_votes(votes, conn)
-          votes
+          WebsocketState(..state, votes:)
         }
         Show -> {
           let _ = communicate_votes(state.votes, conn)
           let _ = mist.send_text_frame(conn, "showVotes|now")
-          state.votes
+          state
+        }
+        Reset -> {
+          let votes = dict.map_values(state.votes, fn(_id, _vote) {None})
+          let _ = mist.send_text_frame(conn, "resetVotes|now")
+          let _ = communicate_votes(votes, conn)
+          WebsocketState(..state, votes:, vote: UserVote(..state.vote, vote: None))
         }
       }
-      mist.continue(WebsocketState(..state, votes: new_votes))
+      mist.continue(state)
     }
     mist.Binary(_) -> {
       mist.continue(state)
@@ -203,6 +214,7 @@ type ConnectionMessage {
   Voted(UserVote)
   Left(String)
   Show
+  Reset
 }
 
 fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
@@ -245,6 +257,14 @@ fn broadcast_show(
 ) {
   let members = chip.members(connection_registry, room_name, 50)
   list.each(members, fn(subject) { process.send(subject, Show) })
+}
+
+fn broadcast_reset(
+  room_name: String,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
+  let members = chip.members(connection_registry, room_name, 50)
+  list.each(members, fn(subject) { process.send(subject, Reset) })
 }
 
 pub fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
