@@ -246,13 +246,6 @@ window.addEventListener('load', () => {
     filter: matchesResponse("resetVotes")
   })
 
-  setInterval(() => {
-    ws.send(JSON.stringify({
-      command: "userPing",
-      value: userId,
-    }));
-  }, 30000);
-
   window.onbeforeunload = () => {
     ws.send(JSON.stringify({
       command: "leaveRoom",

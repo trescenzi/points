@@ -1,0 +1,25 @@
+# flyctl launch added from .gitignore
+**/*.beam
+**/*.ez
+build
+**/erl_crash.dump
+
+# flyctl launch added from build/packages/chip/.gitignore
+build/packages/chip/**/*.beam
+build/packages/chip/**/*.ez
+build/packages/chip/**/build
+build/packages/chip/**/erl_crash.dump
+build/packages/chip/**/*.tool-versions
+
+# flyctl launch added from build/packages/lamb/.gitignore
+build/packages/lamb/**/*.beam
+build/packages/lamb/**/*.ez
+build/packages/lamb/build
+build/packages/lamb/**/erl_crash.dump
+
+# flyctl launch added from build/packages/radish/.gitignore
+build/packages/radish/**/*.beam
+build/packages/radish/**/*.ez
+build/packages/radish/**/build
+build/packages/radish/**/erl_crash.dump
+fly.toml

@@ -3,7 +3,7 @@
 }
 
 .vote_card {
-  padding: 1em;
+  padding: 1.25em 1em;
   border: 1px solid blue;
   border-radius: 8px;
   min-width: 24px;
