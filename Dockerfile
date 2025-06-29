@@ -8,6 +8,7 @@ RUN apk add gcc build-base git \
   && rm -r build/packages/lamb/test \
   && gleam export erlang-shipment \
   && mv build/erlang-shipment /app \
+  && mv priv/ /app \
   && rm -r /build \
   && apk del gcc build-base \
   && addgroup -S points \

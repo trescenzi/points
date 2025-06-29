@@ -14,7 +14,6 @@ version = "1.0.0"
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
-radish = { git = "https://github.com/trescenzi/radish", ref = "upgrade-to-otp-1" }
 gleam_erlang = ">= 1.0.0 and < 2.0.0"
 gleam_otp = ">= 1.0.0 and < 2.0.0"
 blah = ">= 1.4.0 and < 2.0.0"
