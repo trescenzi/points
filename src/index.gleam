@@ -6,6 +6,7 @@ fn head() -> Node {
   html.Head([
     html.title("Point your tickets!"),
     html.Script([attr.src("/public/main.js")], ""),
+    html.Script([attr.data("goatcounter", "https://points.goatcounter.com/count"), attr.async(), attr.src("//gc.zgo.at/count.js")], ""),
     html.link([attr.href("/public/main.css"), attr.rel("stylesheet")]),
   ])
 }

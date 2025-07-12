@@ -1,3 +1,4 @@
+import gleam/erlang/node
 import blah/other
 import blah/word
 import chip
@@ -5,7 +6,7 @@ import gleam/bytes_tree
 import gleam/dict.{type Dict}
 import gleam/dynamic/decode
 import gleam/erlang/atom.{type Atom}
-import gleam/erlang/process
+import gleam/erlang/process.{type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/int
@@ -15,9 +16,12 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
+import gleam/otp/actor
+import erlang_plus
 import index
 import logging
 import mist.{type Connection, type ResponseData}
+import connect
 
 @external(erlang, "logger", "update_primary_config")
 fn logger_update_primary_config(config: Dict(Atom, Atom)) -> Result(Nil, any)
@@ -34,6 +38,10 @@ pub fn main() {
     |> response.set_body(mist.Bytes(bytes_tree.new()))
 
   let assert Ok(registry) = chip.start(chip.Unnamed)
+
+  // We try to connect to other nodes here
+  connect.connect_to_other_nodes()
+  let assert Ok(node_communicator) = start_node_communicator(registry.data)
 
   let assert Ok(_) =
     fn(req: Request(Connection)) -> Response(ResponseData) {
@@ -58,10 +66,11 @@ pub fn main() {
             on_init: create_ws_actor(_, registry.data),
             on_close: fn(state) {
               broadcast_leave(state.vote.user, registry.data)
+              remote_broadcast_leave(state.vote.user, node_communicator.data)
               io.println("goodbye " <> state.vote.user <> "!")
             },
             handler: fn(state: WebsocketState, message, conn) {
-              handle_ws_message(state, message, conn, registry.data)
+              handle_ws_message(state, message, conn, registry.data, node_communicator.data)
             },
           )
 
@@ -81,6 +90,7 @@ fn handle_ws_message(
   message,
   conn,
   connection_registry: chip.Registry(ConnectionMessage, String),
+  node_communicator: Subject(RemoteMessage)
 ) {
   case message {
     mist.Text("ping") -> {
@@ -94,6 +104,11 @@ fn handle_ws_message(
       // the ws doesn't care which rooms its in
       // it being a registry is what makes it in a room
       let _ = mist.send_text_frame(conn, "createRoom|" <> room_name)
+
+      // we try to connect again here
+      // TODO make this less excessive
+      connect.connect_to_other_nodes()
+
       mist.continue(state)
     }
     mist.Text(command) -> {
@@ -104,17 +119,20 @@ fn handle_ws_message(
               let room_name = message.value
               chip.register(connection_registry, room_name, state.subject)
               broadcast_join(room_name, connection_registry)
+              remote_broadcast_join(room_name, node_communicator)
               let _ = mist.send_text_frame(conn, "joinRoom|success")
               state
             }
             "showVotes" -> {
               let room_name = message.value
               broadcast_show(room_name, connection_registry)
+              remote_broadcast_show(room_name, node_communicator)
               state
             }
             "resetVotes" -> {
               let room_name = message.value
               broadcast_reset(room_name, connection_registry)
+              remote_broadcast_reset(room_name, node_communicator)
               state
             }
             "vote" -> {
@@ -129,6 +147,7 @@ fn handle_ws_message(
                 Error(_) -> state.vote
               }
               broadcast_vote(vote, room_name, connection_registry)
+              remote_broadcast_vote(vote, room_name, node_communicator)
               let _ = mist.send_text_frame(conn, "vote|success")
 
               WebsocketState(..state, vote:)
@@ -150,7 +169,7 @@ fn handle_ws_message(
           let _ = communicate_votes(votes, conn)
           WebsocketState(..state, votes:)
         }
-        Left(user) -> {
+        Leave(user) -> {
           let votes =
             state.votes
             |> dict.filter(fn(user_id, _vote) { user != user_id })
@@ -169,6 +188,7 @@ fn handle_ws_message(
           WebsocketState(..state, votes:, vote: UserVote(..state.vote, vote: None))
         }
         Join(room_name) -> {
+          // upon a new user joining a room we rebroadcast all votes across the room
           broadcast_vote(state.vote, room_name, connection_registry)
           state
         }
@@ -216,7 +236,7 @@ type WSMessage {
 
 type ConnectionMessage {
   Voted(UserVote)
-  Left(String)
+  Leave(String)
   Show
   Reset
   Join(String)
@@ -254,7 +274,7 @@ fn broadcast_leave(
   connection_registry: chip.Registry(ConnectionMessage, String),
 ) {
   let members = chip.members(connection_registry, "default", 50)
-  list.each(members, fn(subject) { process.send(subject, Left(user)) })
+  list.each(members, fn(subject) { process.send(subject, Leave(user)) })
 }
 
 fn broadcast_show(
@@ -273,12 +293,84 @@ fn broadcast_reset(
   list.each(members, fn(subject) { process.send(subject, Reset) })
 }
 
+fn remote_broadcast_show(room_name: String, subject: Subject(RemoteMessage)) {
+  connect.connect_to_other_nodes()
+  echo node.visible()
+  list.map(
+    node.visible(),
+    erlang_plus.send_to_subject_on_node(_, subject, RemoteShow(room_name))
+  )
+}
+
+fn remote_broadcast_join(room_name: String, subject: Subject(RemoteMessage)) {
+  connect.connect_to_other_nodes()
+  echo node.visible()
+  list.map(
+    node.visible(),
+    erlang_plus.send_to_subject_on_node(_, subject, RemoteJoin(room_name))
+  )
+}
+
+fn remote_broadcast_reset(room_name: String, subject: Subject(RemoteMessage)) {
+  connect.connect_to_other_nodes()
+  echo node.visible()
+  list.map(
+    node.visible(),
+    erlang_plus.send_to_subject_on_node(_, subject, RemoteReset(room_name))
+  )
+}
+
+fn remote_broadcast_leave(user_id: String, subject: Subject(RemoteMessage)) {
+  connect.connect_to_other_nodes()
+  echo node.visible()
+  list.map(
+    node.visible(),
+    erlang_plus.send_to_subject_on_node(_, subject, RemoteLeave(user_id))
+  )
+}
+
+fn remote_broadcast_vote(vote: UserVote, room_name: String, subject: Subject(RemoteMessage)) {
+  connect.connect_to_other_nodes()
+  echo node.visible()
+  list.map(
+    node.visible(),
+    erlang_plus.send_to_subject_on_node(_, subject, RemoteVoted(vote, room_name))
+  )
+}
+
 pub fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
   json.object([#("votes", json.dict(votes, fn(key) { key }, json.nullable(_, json.int)))])
 }
 
 fn communicate_votes(votes: Dict(String, Option(Int)), connection: mist.WebsocketConnection) {
   mist.send_text_frame(connection, "votes|" <> json.to_string(votes_to_json(votes)))
+}
+
+fn start_node_communicator(state: chip.Registry(ConnectionMessage, String)) {
+  let name = erlang_plus.new_exact_name("node_communicator")
+  actor.new(state)
+  |> actor.on_message(handle_remote_message)
+  |> actor.named(name)
+  |> actor.start
+}
+
+type RemoteMessage {
+  RemoteVoted(vote: UserVote, room_name: String)
+  RemoteLeave(user_id: String)
+  RemoteShow(room_name: String)
+  RemoteReset(room_name: String)
+  RemoteJoin(room_name: String)
+}
+
+fn handle_remote_message(state: chip.Registry(ConnectionMessage, String), message: RemoteMessage) {
+  case message {
+    RemoteJoin(room_name:) -> broadcast_join(room_name, state)
+    RemoteLeave(user_id:) -> broadcast_leave(user_id, state)
+    RemoteReset(room_name:) -> broadcast_reset(room_name, state)
+    RemoteShow(room_name:) -> broadcast_show(room_name, state)
+    RemoteVoted(vote:, room_name:) -> broadcast_vote(vote, room_name, state)
+  }
+  actor.continue(state)
 }
 
 fn serve_file(

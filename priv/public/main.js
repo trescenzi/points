@@ -101,10 +101,10 @@ function drawVote(user, vote, myVote, hidden = true) {
   return div;
 }
 
-function drawVotes(votes, currentUser) {
+function drawVotes(votes, currentUser, votesVisible) {
   console.log("drawing votes", votes);
   const voteDivs = Object.entries(votes.votes)
-    .map(([userId, vote]) => drawVote(userId, vote, userId === currentUser, userId !== currentUser))
+    .map(([userId, vote]) => drawVote(userId, vote, userId === currentUser, userId !== currentUser, votesVisible))
     // your vote is always first
     .sort((a, b) => a.classList.contains("my_vote") ? -1 : b.classList.contains("my_vote") ? 1 : 0)
   document.querySelector("#vote_area").replaceChildren(...voteDivs); 

@@ -81,7 +81,6 @@ body {
   display: grid;
   width: 125px;
   height: 175px;
-  border: 2px solid var(--black);
 }
 
 .hidden_vote.vote_card {
@@ -100,6 +99,7 @@ body {
   grid-area: 1/-1;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  border: 2px solid var(--black);
 }
 
 .tl, .tr, .m, .bl, .br {
