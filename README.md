@@ -27,6 +27,7 @@ points aims to take full advantage of the BEAM and OTP. As such it can be scaled
 
 When User A votes for 2, it tells all of the users on its node that it voted and then it tells all node communicators that it voted as well. This information is then synchronized across the cluster and sent back to each user.
 
+```
  ┌────────┐   ┌────────┐   ┌────────┐                    
  │User A  │   │User B  │   │User C  │                    
  │        │   │        │   │        │                    
@@ -49,3 +50,4 @@ When User A votes for 2, it tells all of the users on its node that it voted and
      │                                         │         
      │             Vote                        │         
      └─────────────────────────────────────────┘
+```
