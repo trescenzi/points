@@ -3,7 +3,6 @@ FROM ghcr.io/gleam-lang/gleam:v1.11.1-elixir-alpine
 COPY . /build/
 
 ENV ERLANG_COOKIE="OmNomNomNom"
-#ENV ERL_AFLAGS = '-proto_dist inet6_tcp -name ${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP} -setcookie foo'
 ENV ERLANG_BASENAME="erlang_node"
 ENV DNS_CLUSTER_QUERY="erlang_node"
 
