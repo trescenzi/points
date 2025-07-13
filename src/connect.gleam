@@ -57,8 +57,9 @@ fn parse_v4_tuple(ip: #(Int, Int, Int, Int)) -> IP {
 
 fn parse_v6_part(part: Int) -> String {
   case int.to_base16(part) {
-    "0" -> ""
-    x -> x
+    //"0" -> ""
+    // TODO fly's ipv6 strings are lowecase and include 0s. Not sure about a good way to be consistent here
+    x -> x |> string.lowercase
   }
 }
 
@@ -81,16 +82,16 @@ fn parse_v6_tuple(ip: #(Int, Int, Int, Int, Int, Int, Int, Int)) -> IP {
 }
 
 fn discover_host_ips() -> List(IP) {
-  let basename = case envoy.get("DNS_CLUSTER_QUERY") {
+  let dns_query = case envoy.get("DNS_CLUSTER_QUERY") {
     Ok(h) -> h
     Error(_) -> ""
   }
 
-  let v4ips = case lookup_a(basename, 1000) {
+  let v4ips = case lookup_a(dns_query, 1000) {
     Ok(ips) -> ips
     Error(_) -> []
   }
-  let v6ips = case lookup_aaaa(basename, 1000) {
+  let v6ips = case lookup_aaaa(dns_query, 1000) {
     Ok(ips) -> ips
     Error(_) -> []
   }
@@ -111,7 +112,7 @@ fn try_connect_ip(basename: String, ip: IP) -> Result(Node, ConnectError) {
 }
 
 fn try_connect_ips(ips: List(IP)) -> List(Result(Node, ConnectError)) {
-  let basename = case envoy.get("DNS_CLUSTER_QUERY") {
+  let basename = case envoy.get("ERLANG_BASENAME") {
     Ok(h) -> h
     Error(_) -> ""
   }

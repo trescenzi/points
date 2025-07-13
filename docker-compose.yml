@@ -12,6 +12,9 @@ services:
       erlang_network:
         aliases:
           - erlang_node
+    environment:
+      DNS_CLUSTER_QUERY: "erlang_node"
+      ERLANG_BASENAME: "erlang_node"
     restart: unless-stopped
 
   erlang_node2:

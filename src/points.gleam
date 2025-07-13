@@ -13,6 +13,7 @@ import gleam/option.{None}
 import gleam/result
 import gleam/string
 import index
+import gleam/erlang/node
 import logging
 import mist.{type Connection, type ResponseData}
 
@@ -44,6 +45,7 @@ pub fn main() {
         "Got a request from: " <> string.inspect(mist.get_client_info(req.body)),
       )
       logging.log(logging.Info, "path: " <> string.inspect(req.path))
+      echo node.self()
       case request.path_segments(req) {
         [] | ["index"] ->
           response.new(200)
