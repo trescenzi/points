@@ -6,24 +6,29 @@ fn head() -> Node {
   html.Head([
     html.title("Point your tickets!"),
     html.Script([attr.src("/public/main.js")], ""),
-    html.Script([attr.data("goatcounter", "https://points.goatcounter.com/count"), attr.async(), attr.src("//gc.zgo.at/count.js")], ""),
+    html.Script(
+      [
+        attr.data("goatcounter", "https://points.goatcounter.com/count"),
+        attr.async(),
+        attr.src("//gc.zgo.at/count.js"),
+      ],
+      "",
+    ),
     html.link([attr.href("/public/main.css"), attr.rel("stylesheet")]),
   ])
 }
 
 fn vote_option(quantity: String) -> Node {
   let data_quantity = attr.data("quantity", quantity)
-  html.div(
-    [attr.class("vote_option vote_card"), data_quantity],
-    [html.div([attr.class("front"), data_quantity],
-      [
+  html.div([attr.class("vote_option vote_card"), data_quantity], [
+    html.div([attr.class("front"), data_quantity], [
       html.div([attr.class("tl"), data_quantity], [html.Text(quantity)]),
       html.div([attr.class("tr"), data_quantity], [html.Text(quantity)]),
-      html.div([attr.class("m"), data_quantity],  [html.Text(quantity)]),
+      html.div([attr.class("m"), data_quantity], [html.Text(quantity)]),
       html.div([attr.class("bl"), data_quantity], [html.Text(quantity)]),
-      html.div([attr.class("br"), data_quantity], [html.Text(quantity)])
-    ])],
-  )
+      html.div([attr.class("br"), data_quantity], [html.Text(quantity)]),
+    ]),
+  ])
 }
 
 fn body() -> Node {

@@ -5,6 +5,7 @@ packages = [
   { name = "birl", version = "1.8.0", build_tools = ["gleam"], requirements = ["gleam_regexp", "gleam_stdlib", "ranger"], otp_app = "birl", source = "hex", outer_checksum = "2AC7BA26F998E3DFADDB657148BD5DDFE966958AD4D6D6957DD0D22E5B56C400" },
   { name = "blah", version = "1.4.0", build_tools = ["gleam"], requirements = ["birl", "gleam_regexp", "gleam_stdlib"], otp_app = "blah", source = "hex", outer_checksum = "B18E6CC4F2311D2912397383F9805DDD79631774C8D062FBA1E3DCB3DE8FFB00" },
   { name = "chip", version = "1.1.1", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_otp", "gleam_stdlib", "lamb"], source = "git", repo = "https://github.com/trescenzi/chip", commit = "0e890d5de3744d5483b5e3a1571ec01598482a03" },
+  { name = "envoy", version = "1.0.2", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "envoy", source = "hex", outer_checksum = "95FD059345AA982E89A0B6E2A3BF1CF43E17A7048DCD85B5B65D3B9E4E39D359" },
   { name = "gleam_crypto", version = "1.5.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_crypto", source = "hex", outer_checksum = "50774BAFFF1144E7872814C566C5D653D83A3EBF23ACC3156B757A1B6819086E" },
   { name = "gleam_erlang", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_erlang", source = "hex", outer_checksum = "F91CE62A2D011FA13341F3723DB7DB118541AAA5FE7311BD2716D018F01EF9E3" },
   { name = "gleam_http", version = "4.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_http", source = "hex", outer_checksum = "DB25DFC8530B64B77105405B80686541A0D96F7E2D83D807D6B2155FB9A8B1B8" },
@@ -29,6 +30,7 @@ packages = [
 [requirements]
 blah = { version = ">= 1.4.0 and < 2.0.0" }
 chip = { git = "https://github.com/trescenzi/chip", ref = "upgrade-to-erlang-otp-v1" }
+envoy = { version = ">= 1.0.2 and < 2.0.0" }
 gleam_erlang = { version = ">= 1.0.0 and < 2.0.0" }
 gleam_http = { version = ">= 4.0.0 and < 5.0.0" }
 gleam_json = { version = ">= 3.0.1 and < 4.0.0" }

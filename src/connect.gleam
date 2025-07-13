@@ -1,10 +1,9 @@
+import envoy
+import gleam/erlang/atom
+import gleam/erlang/node.{type ConnectError, type Node}
 import gleam/int
 import gleam/list
 import gleam/string
-import gleam/erlang/node.{type Node, type ConnectError}
-import gleam/erlang/atom
-import gleam/result
-import gleam/pair
 
 pub fn connect_to_other_nodes() -> List(Result(Node, ConnectError)) {
   let ips = discover_host_ips()
@@ -62,6 +61,7 @@ fn parse_v6_part(part: Int) -> String {
     x -> x
   }
 }
+
 fn parse_v6_tuple(ip: #(Int, Int, Int, Int, Int, Int, Int, Int)) -> IP {
   let #(a, b, c, d, e, f, g, h) = ip
 
@@ -74,11 +74,14 @@ fn parse_v6_tuple(ip: #(Int, Int, Int, Int, Int, Int, Int, Int)) -> IP {
   let gstring = parse_v6_part(g)
   let hstring = parse_v6_part(h)
 
-  IPV6(string.join([astring, bstring, cstring, dstring, estring, fstring, gstring, hstring], ":"))
+  IPV6(string.join(
+    [astring, bstring, cstring, dstring, estring, fstring, gstring, hstring],
+    ":",
+  ))
 }
 
 fn discover_host_ips() -> List(IP) {
-  let basename = case basename() {
+  let basename = case envoy.get("DNS_CLUSTER_QUERY") {
     Ok(h) -> h
     Error(_) -> ""
   }
@@ -92,7 +95,10 @@ fn discover_host_ips() -> List(IP) {
     Error(_) -> []
   }
 
-  list.flatten([list.map(v4ips, parse_v4_tuple), list.map(v6ips, parse_v6_tuple)])
+  list.flatten([
+    list.map(v4ips, parse_v4_tuple),
+    list.map(v6ips, parse_v6_tuple),
+  ])
 }
 
 fn try_connect_ip(basename: String, ip: IP) -> Result(Node, ConnectError) {
@@ -105,27 +111,9 @@ fn try_connect_ip(basename: String, ip: IP) -> Result(Node, ConnectError) {
 }
 
 fn try_connect_ips(ips: List(IP)) -> List(Result(Node, ConnectError)) {
-  let basename = case basename() {
-    Ok(b) -> b
+  let basename = case envoy.get("DNS_CLUSTER_QUERY") {
+    Ok(h) -> h
     Error(_) -> ""
   }
   list.map(ips, try_connect_ip(basename, _))
-}
-
-fn node_name() -> String {
-  node.self()
-  |> node.name
-  |> atom.to_string
-}
-
-fn basename() -> Result(String, Nil) {
-  node_name()
-  |> string.split_once("@")
-  |> result.map(pair.first)
-}
-
-fn hostname() -> Result(String, Nil) {
-  node_name()
-  |> string.split_once("@")
-  |> result.map(pair.second)
 }

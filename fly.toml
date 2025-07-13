@@ -8,6 +8,11 @@ primary_region = 'iad'
 
 [build]
 
+[env]
+  DNS_CLUSTER_QUERY = '${FLY_APP_NAME}.internal'
+  ERLANG_BASENAME = '${FLY_APP_NAME}_${FLY_IMAGE_REF##*-}'
+  EXTRA_ERL_AFLAGS = '-proto_dist inet6_tcp'
+
 [http_service]
   internal_port = 9000
   force_https = true
