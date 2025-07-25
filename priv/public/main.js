@@ -133,6 +133,7 @@ window.addEventListener('load', () => {
   const resetButton = document.querySelector("#reset_button");
   const votingArea = document.querySelector('#voting_area');
   const userTypeCheckbox = document.querySelector('#user_type');
+  const main = document.querySelector("main");
   let votesVisible = false;
 
   ws.addCallback({
@@ -153,8 +154,12 @@ window.addEventListener('load', () => {
       return;
     }
     vote = e.target.dataset?.quantity;
-    ws.send(JSON.stringify({command: "vote", value: `${roomName}:${vote}`}));
-    console.log(vote);
+    if (vote) {
+      ws.send(JSON.stringify({command: "vote", value: `${roomName}:${vote}`}));
+      delete main.dataset.vote;
+      setTimeout(() => main.dataset.vote = vote, 10)
+      console.log(vote);
+    }
   })
 
   shareButton.addEventListener("click", () => {
