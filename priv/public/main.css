@@ -22,7 +22,7 @@ html {
   background-color: var(--light);
 }
 .hidden {
-  display: none;
+  display: none !important;
 }
 main {
   display: flex;
@@ -155,7 +155,6 @@ button {
   background-color: var(--orange);
   border: 2px solid var(--black);
   border-radius: 8px;
-  box-sizing: border-box;
   color: var(--black);
   cursor: pointer;
   display: inline-flex;
@@ -169,7 +168,7 @@ button {
   text-decoration: none;
 }
 
-button:after, .front:after {
+button:after, .front:after, .toggle [type="checkbox"]:after {
   background-color: var(--dark);
   border-radius: 8px;
   content: "";
@@ -184,7 +183,7 @@ button:after, .front:after {
   z-index: -1;
 }
 
-button:hover:after {
+button:hover:after, .toggle [type="checkbox"]:hover:after {
   transform: translate(2px, 2px);
 }
 
@@ -199,6 +198,67 @@ button:active {
 
 button:hover {
   outline: 0;
+}
+
+.toggle [type="checkbox"] {
+  appearance: none;
+  position: relative;
+  height: 48px;
+  width: 200px;
+  perspective: 1000px;
+  transform: preserve-3d;
+  transition: transform .2s ease-out;
+  backface-visibility: none;
+  cursor: pointer;
+}
+.toggle [type="checkbox"]:before {
+  content: "Voter";
+  font-size: 24px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  border-radius: 8px;
+  border: 2px solid var(--black);
+}
+.toggle [type="checkbox"]:not(:checked) {
+  animation: unflip-toggle .5s;
+}
+.toggle [type="checkbox"]:not(:checked):before {
+  background-color: var(--purple);
+}
+.toggle [type="checkbox"]:checked:before {
+  background-color: var(--blue);
+}
+.toggle [type="checkbox"]:checked {
+  animation: flip-toggle .5s;
+}
+.toggle [type="checkbox"]:checked:before {
+  content: "Spectator";
+}
+
+@keyframes flip-toggle {
+  0% {
+    opacity: 0%;
+  }
+
+  100% {
+    transform: rotateY(180deg) scale(-1, 1);
+    opacity: 100%;
+  }
+}
+
+@keyframes unflip-toggle {
+  0% {
+    opacity: 0%;
+  }
+
+  100% {
+    transform: rotateY(-180deg) scale(-1, 1);
+    opacity: 100%;
+  }
 }
 
 @media (min-width: 768px) {

@@ -4,6 +4,7 @@ import connect
 import gleam/bytes_tree
 import gleam/dict.{type Dict}
 import gleam/erlang/atom.{type Atom}
+import gleam/erlang/node
 import gleam/erlang/process
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -13,7 +14,6 @@ import gleam/option.{None}
 import gleam/result
 import gleam/string
 import index
-import gleam/erlang/node
 import logging
 import mist.{type Connection, type ResponseData}
 

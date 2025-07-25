@@ -73,13 +73,35 @@ pub fn handle_ws_message(
               }
 
               let vote = case int.parse(vote) {
-                Ok(vote) -> UserVote(vote: Some(vote), user: state.vote.user)
+                Ok(vote) -> UserVote(..state.vote, vote: Some(vote))
                 Error(_) -> state.vote
               }
               broadcast_vote(vote, room_name, connection_registry)
               remote_broadcast_vote(vote, room_name, node_communicator)
               let _ = mist.send_text_frame(conn, "vote|success")
 
+              WebsocketState(..state, vote:)
+            }
+            "setUserType" -> {
+              let #(room_name, user_type) = case
+                string.split(message.value, ":")
+              {
+                [room_name, user_id] -> #(room_name, user_id)
+                [] -> #("", "")
+                [_, ..] -> #("", "")
+              }
+              let user_type = case user_type {
+                "voter" -> Voter
+                "spectator" -> Spectator
+                _ -> Voter
+              }
+              let vote = UserVote(..state.vote, user_type:)
+              broadcast_user_type_toggle(vote, room_name, connection_registry)
+              remote_broadcast_user_type_toggle(
+                vote,
+                room_name,
+                node_communicator,
+              )
               WebsocketState(..state, vote:)
             }
             _ -> state
@@ -93,8 +115,8 @@ pub fn handle_ws_message(
       let state = case connection_message {
         Voted(new_vote) -> {
           let votes =
-            dict.insert(state.votes, new_vote.user, new_vote.vote)
-            |> dict.insert(state.vote.user, state.vote.vote)
+            dict.insert(state.votes, new_vote.user, new_vote)
+            |> dict.insert(state.vote.user, state.vote)
 
           let _ = communicate_votes(votes, conn)
           WebsocketState(..state, votes:)
@@ -112,7 +134,10 @@ pub fn handle_ws_message(
           state
         }
         Reset -> {
-          let votes = dict.map_values(state.votes, fn(_id, _vote) { None })
+          let votes =
+            dict.map_values(state.votes, fn(_id, vote) {
+              UserVote(..vote, vote: None)
+            })
           let _ = mist.send_text_frame(conn, "resetVotes|now")
           let _ = communicate_votes(votes, conn)
           WebsocketState(
@@ -127,6 +152,11 @@ pub fn handle_ws_message(
           remote_broadcast_vote(state.vote, room_name, node_communicator)
           state
         }
+        ToggleUserType(vote) -> {
+          let votes = dict.insert(state.votes, vote.user, vote)
+          let _ = communicate_votes(votes, conn)
+          WebsocketState(..state, votes:)
+        }
       }
       mist.continue(state)
     }
@@ -137,16 +167,47 @@ pub fn handle_ws_message(
   }
 }
 
-pub type UserVote {
-  UserVote(vote: Option(Int), user: String)
+pub type UserType {
+  Voter
+  Spectator
 }
+
+pub type UserVote {
+  UserVote(vote: Option(Int), user: String, user_type: UserType)
+}
+
+type Votes =
+  Dict(String, UserVote)
 
 pub type WebsocketState {
   WebsocketState(
     subject: process.Subject(ConnectionMessage),
     vote: UserVote,
-    votes: Dict(String, Option(Int)),
+    votes: Votes,
   )
+}
+
+fn user_type_to_json(user_type: UserType) -> json.Json {
+  case user_type {
+    Voter -> json.string("voter")
+    Spectator -> json.string("spectator")
+  }
+}
+
+fn votes_to_json(votes: Votes) -> json.Json {
+  json.dict(votes, fn(string) { string }, user_vote_to_json)
+}
+
+fn user_vote_to_json(user_vote: UserVote) -> json.Json {
+  let UserVote(vote:, user:, user_type:) = user_vote
+  json.object([
+    #("vote", case vote {
+      None -> json.null()
+      Some(value) -> json.int(value)
+    }),
+    #("user", json.string(user)),
+    #("user_type", user_type_to_json(user_type)),
+  ])
 }
 
 pub fn create_ws_actor(
@@ -158,7 +219,7 @@ pub fn create_ws_actor(
 
   chip.register(connection_registry, "default", self)
   // we start with no vote and a uuid; maybe someday the user can have a name
-  let uv = UserVote(vote: None, user: other.uuid())
+  let uv = UserVote(vote: None, user: other.uuid(), user_type: Voter)
 
   let _ = mist.send_text_frame(conn, "connect|" <> uv.user)
 
@@ -175,6 +236,7 @@ pub type ConnectionMessage {
   Show
   Reset
   Join(String)
+  ToggleUserType(UserVote)
 }
 
 fn w_s_message_decoder() -> decode.Decoder(WSMessage) {
@@ -226,6 +288,15 @@ fn broadcast_reset(
 ) {
   let members = chip.members(connection_registry, room_name, 50)
   list.each(members, fn(subject) { process.send(subject, Reset) })
+}
+
+fn broadcast_user_type_toggle(
+  vote: UserVote,
+  room_name: String,
+  connection_registry: chip.Registry(ConnectionMessage, String),
+) {
+  let members = chip.members(connection_registry, room_name, 50)
+  list.each(members, fn(subject) { process.send(subject, ToggleUserType(vote)) })
 }
 
 fn remote_broadcast_show(room_name: String, subject: Subject(RemoteMessage)) {
@@ -282,16 +353,21 @@ fn remote_broadcast_vote(
   ))
 }
 
-fn votes_to_json(votes: Dict(String, Option(Int))) -> json.Json {
-  json.object([
-    #("votes", json.dict(votes, fn(key) { key }, json.nullable(_, json.int))),
-  ])
+fn remote_broadcast_user_type_toggle(
+  vote: UserVote,
+  room_name: String,
+  subject: Subject(RemoteMessage),
+) {
+  connect.connect_to_other_nodes()
+  echo node.visible()
+  list.map(node.visible(), erlang_plus.send_to_subject_on_node(
+    _,
+    subject,
+    RemoteToggleUserType(vote, room_name),
+  ))
 }
 
-fn communicate_votes(
-  votes: Dict(String, Option(Int)),
-  connection: mist.WebsocketConnection,
-) {
+fn communicate_votes(votes: Votes, connection: mist.WebsocketConnection) {
   mist.send_text_frame(
     connection,
     "votes|" <> json.to_string(votes_to_json(votes)),
@@ -308,6 +384,7 @@ pub fn start_node_communicator(state: chip.Registry(ConnectionMessage, String)) 
 
 pub type RemoteMessage {
   RemoteVoted(vote: UserVote, room_name: String)
+  RemoteToggleUserType(vote: UserVote, room_name: String)
   RemoteLeave(user_id: String)
   RemoteShow(room_name: String)
   RemoteReset(room_name: String)
@@ -324,6 +401,8 @@ fn handle_remote_message(
     RemoteReset(room_name:) -> broadcast_reset(room_name, state)
     RemoteShow(room_name:) -> broadcast_show(room_name, state)
     RemoteVoted(vote:, room_name:) -> broadcast_vote(vote, room_name, state)
+    RemoteToggleUserType(vote:, room_name:) ->
+      broadcast_user_type_toggle(vote, room_name, state)
   }
   actor.continue(state)
 }

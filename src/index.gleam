@@ -48,6 +48,13 @@ fn body() -> Node {
         ]),
         html.button([attr.id("show_button")], [html.Text("Show Votes")]),
         html.button([attr.id("reset_button")], [html.Text("Reset Votes")]),
+        html.label([attr.class("toggle")], [
+          html.input([
+            attr.name("user_type"),
+            attr.id("user_type"),
+            attr.type_("checkbox"),
+          ]),
+        ]),
       ]),
       html.div([attr.id("voting_area")], [
         vote_option("0"),

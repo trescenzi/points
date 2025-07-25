@@ -64,7 +64,8 @@ function connect(endpoint) {
   }
 }
 
-function drawVote(user, vote, myVote, hidden = true) {
+function drawVote({vote, user, user_type}, myVote, hidden = true) {
+  console.log('drawing vote', vote, user, user_type);
   const hasntVoted = vote === -1 || vote == null;
   const div = document.createElement('div');
   const front = document.createElement('div');
@@ -99,13 +100,14 @@ function drawVote(user, vote, myVote, hidden = true) {
   div.appendChild(back);
   myVote && div.classList.add("my_vote");
   hidden && div.classList.add("hidden_vote");
+  user_type === "spectator" && div.classList.add("hidden")
   return div;
 }
 
 function drawVotes(votes, currentUser, votesVisible) {
   console.log("drawing votes", votes);
-  const voteDivs = Object.entries(votes.votes)
-    .map(([userId, vote]) => drawVote(userId, vote, userId === currentUser, userId !== currentUser, votesVisible))
+  const voteDivs = Object.entries(votes)
+    .map(([userId, vote]) => drawVote(vote, userId === currentUser, userId !== currentUser, votesVisible))
     // your vote is always first
     .sort((a, b) => a.classList.contains("my_vote") ? -1 : b.classList.contains("my_vote") ? 1 : 0)
   document.querySelector("#vote_area").replaceChildren(...voteDivs); 
@@ -130,6 +132,7 @@ window.addEventListener('load', () => {
   const showButton = document.querySelector("#show_button");
   const resetButton = document.querySelector("#reset_button");
   const votingArea = document.querySelector('#voting_area');
+  const userTypeCheckbox = document.querySelector('#user_type');
   let votesVisible = false;
 
   ws.addCallback({
@@ -142,6 +145,7 @@ window.addEventListener('load', () => {
   })
 
   votingArea.addEventListener("click", (e) => {
+    if (userTypeCheckbox.checked) return;
     const url = new URL(window.location)
     const roomName = url.searchParams.get("roomName");
     if (!roomName) {
@@ -182,6 +186,20 @@ window.addEventListener('load', () => {
 
   createRoomButton.addEventListener("click", () => {
     ws.send("createRoom");
+  });
+
+  if (userTypeCheckbox.checked) {
+    const url = new URL(window.location)
+    const roomName = url.searchParams.get("roomName");
+    ws.send(JSON.stringify({command: "setUserType", value: `${roomName}:spectator`}));
+  }
+
+  userTypeCheckbox.addEventListener("input", (e) => {
+    /* checked === spectator */
+    const type = e.target.checked ? 'spectator' : 'voter'
+    const url = new URL(window.location)
+    const roomName = url.searchParams.get("roomName");
+    ws.send(JSON.stringify({command: "setUserType", value: `${roomName}:${type}`}));
   })
 
   function setRoom(roomName) {
