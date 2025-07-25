@@ -65,6 +65,7 @@ function connect(endpoint) {
 }
 
 function drawVote(user, vote, myVote, hidden = true) {
+  const hasntVoted = vote === -1 || vote == null;
   const div = document.createElement('div');
   const front = document.createElement('div');
   const back = document.createElement('div');
@@ -78,7 +79,7 @@ function drawVote(user, vote, myVote, hidden = true) {
   bl.classList.add("bl");
   const br = document.createElement('div');
   br.classList.add("br");
-  const value = vote === -1 || vote == null ? "?" : vote;
+  const value = hasntVoted ? "?" : vote;
   tl.innerText = value;
   tr.innerText = value;
   m.innerText = value;
@@ -87,7 +88,7 @@ function drawVote(user, vote, myVote, hidden = true) {
   front.replaceChildren(tl, tr, m, bl, br)
   const backInner = document.createElement('div');
   backInner.classList.add("m");
-  backInner.innerText = "?";
+  backInner.innerText = hasntVoted ? "?" : "✔️";
   back.replaceChildren(backInner);
   front.classList.add("front");
   back.classList.add("back");
