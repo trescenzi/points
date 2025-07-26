@@ -294,6 +294,8 @@ window.addEventListener('load', () => {
       [...document.querySelectorAll("#vote_area .vote_card:not(.my_vote)")].forEach(card => {
         card.classList.add("hidden_vote")
       })
+      document.querySelector("#mean").innerText = "--";
+      document.querySelector("#std").innerText = "--";
     },
     filter: matchesResponse("resetVotes")
   })
