@@ -152,6 +152,12 @@ body {
 .my_vote .back {
   visibility: hidden;
 }
+.my_vote:before {
+  content: "Your Vote:";
+  position: absolute;
+  top: -36px;
+  font-size: 24px;
+}
 
 .vote_option:hover {
   cursor: pointer;
@@ -214,6 +220,12 @@ button:hover {
   outline: 0;
 }
 
+.toggle div {
+  position: absolute;
+  top: -20px;
+  font-weight: 600;
+}
+
 .toggle [type="checkbox"] {
   appearance: none;
   position: relative;
@@ -241,10 +253,10 @@ button:hover {
   animation: unflip-toggle .5s;
 }
 .toggle [type="checkbox"]:not(:checked):before {
-  background-color: var(--purple);
+  background-color: var(--blue);
 }
 .toggle [type="checkbox"]:checked:before {
-  background-color: var(--blue);
+  background-color: var(--green);
 }
 .toggle [type="checkbox"]:checked {
   animation: flip-toggle .5s;
