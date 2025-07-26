@@ -67,7 +67,20 @@ fn body() -> Node {
         vote_option("13"),
         //vote_option("☕"),
       ]),
-      html.div([attr.id("vote_area")], []),
+      html.div([], [
+        html.div([attr.id("vote_area")], []),
+        html.div([attr.id("stats")], [
+          html.h3_text([], "Stats"),
+          html.div([], [
+            html.span_text([], "Mean "),
+            html.span_text([attr.id("mean")], "--"),
+          ]),
+          html.div([], [
+            html.span_text([], "Std. "),
+            html.span_text([attr.id("std")], "--"),
+          ]),
+        ]),
+      ]),
     ]),
   ])
 }

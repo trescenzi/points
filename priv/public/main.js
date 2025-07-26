@@ -96,6 +96,7 @@ function drawVote({vote, user, user_type}, myVote, hidden = true) {
   div.classList.add("vote");
   div.classList.add("vote_card");
   div.dataset.user = user;
+  div.dataset.vote = vote;
   div.appendChild(front);
   div.appendChild(back);
   myVote && div.classList.add("my_vote");
@@ -163,7 +164,7 @@ window.addEventListener('load', () => {
   })
 
   shareButton.addEventListener("click", () => {
-    const currentUrl = window.location.href;
+    const currentUrl = window.location.href;main.js
     navigator.clipboard.writeText(currentUrl)
       .then(() => {
         const originalText = shareButton.innerText;
@@ -276,6 +277,13 @@ window.addEventListener('load', () => {
       [...document.querySelectorAll(".vote_card.hidden_vote")].forEach(card => {
         card.classList.remove("hidden_vote")
       })
+      const voteCards = [...document.querySelectorAll("#vote_area .vote_card")];
+      const votes = voteCards.map(card => card.dataset.vote ? parseInt(card.dataset.vote, 10) : 0)
+      const sum = votes.reduce((sum, vote) => sum + vote, 0)
+      const mean = (sum / votes.length).toPrecision(4);
+      const std = Math.sqrt(votes.map(vote => Math.pow(vote - mean, 2)).reduce((a, b) => a + b) / votes.length).toPrecision(4);
+      document.querySelector("#mean").innerText = mean;
+      document.querySelector("#std").innerText = std;
     },
     filter: matchesResponse("showVotes")
   })
