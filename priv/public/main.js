@@ -286,7 +286,9 @@ window.addEventListener('load', () => {
       const sum = votes.reduce((sum, vote) => sum + vote, 0)
       const mean = (sum / votes.length).toPrecision(4);
       const std = Math.sqrt(votes.map(vote => Math.pow(vote - mean, 2)).reduce((a, b) => a + b) / votes.length).toPrecision(4);
+      const mode = calculateMode(votes);
       document.querySelector("#mean").innerText = mean;
+      document.querySelector("#mode").innerText = mode;
       document.querySelector("#std").innerText = std;
     },
     filter: matchesResponse("showVotes")
@@ -312,3 +314,19 @@ window.addEventListener('load', () => {
   }
 })
 
+function calculateMode(array) {
+  const sortedArray = array.sort();
+  const [_, __, mode] = sortedArray.reduce(([currentValue, currentCount, mode, modeCount], num) => {
+    if (num === currentValue) {
+      currentCount = currentCount + 1;
+      if (currentCount > modeCount) {
+        return [num, currentCount, num, currentCount];
+      }
+    } else {
+      currentValue = num;
+      currentCount = 1;
+    }
+    return [currentValue, currentCount, mode, modeCount];
+  }, [sortedArray[0], 1, sortedArray[0], 1]);
+  return mode;
+}

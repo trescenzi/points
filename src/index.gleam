@@ -76,6 +76,10 @@ fn body() -> Node {
             html.span_text([attr.id("mean")], "--"),
           ]),
           html.div([], [
+            html.span_text([], "Mode "),
+            html.span_text([attr.id("mode")], "--"),
+          ]),
+          html.div([], [
             html.span_text([], "Std. "),
             html.span_text([attr.id("std")], "--"),
           ]),
