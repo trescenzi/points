@@ -149,6 +149,9 @@ body {
   background-color: var(--green);
 }
 
+.my_vote, .my_vote .front {
+  background-color: var(--green);
+}
 .my_vote .back {
   visibility: hidden;
 }

@@ -146,8 +146,10 @@ window.addEventListener('load', () => {
     filter: matchesResponse("connect")
   })
 
-  votingArea.addEventListener("click", (e) => {
+  votingArea.querySelectorAll(".vote_option").forEach(card => card.addEventListener("click", (e) => {
     if (userTypeCheckbox.checked) return;
+    const currentVote = document.querySelector("#voting_area .my_vote");
+    currentVote?.classList.remove("my_vote");
     const url = new URL(window.location)
     const roomName = url.searchParams.get("roomName");
     if (!roomName) {
@@ -156,12 +158,14 @@ window.addEventListener('load', () => {
     }
     vote = e.target.dataset?.quantity;
     if (vote) {
+      console.log(e);
+      card.classList.add("my_vote");
       ws.send(JSON.stringify({command: "vote", value: `${roomName}:${vote}`}));
       delete main.dataset.vote;
       setTimeout(() => main.dataset.vote = vote, 10)
       console.log(vote);
     }
-  })
+  }));
 
   shareButton.addEventListener("click", () => {
     const currentUrl = window.location.href;main.js
