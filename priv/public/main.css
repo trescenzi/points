@@ -101,6 +101,14 @@ body {
   transform: rotateY(180deg);
 }
 
+#room_button::before {
+	content: "Create a room to start:";
+	font-size: 16px;
+	position: absolute;
+	top: -28px;
+	left: 0;
+	font-weight: bold;
+}
 
 .front, .back {
   border-radius: 8px;
