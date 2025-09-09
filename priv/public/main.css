@@ -265,6 +265,7 @@ button:hover {
   transition: transform .2s ease-out;
   backface-visibility: none;
   cursor: pointer;
+  color: var(--black);
 }
 .toggle [type="checkbox"]:before {
   content: "Voter";
