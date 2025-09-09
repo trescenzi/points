@@ -15,6 +15,21 @@ import gleam/otp/actor
 import gleam/string
 import mist
 
+// a few words to avoid just in case as this is for work
+fn safe_verb() {
+  case word.verb() {
+    "fuck" | "shag" | "piss" -> safe_verb()
+    word -> word
+  }
+}
+fn safe_noun() {
+  case word.noun() {
+    //there seems to only be male sex organs
+    "sex" | "penis" | "crap" | "shit" -> safe_noun()
+    word -> word
+  }
+}
+
 pub fn handle_ws_message(
   state: WebsocketState,
   message,
@@ -29,7 +44,7 @@ pub fn handle_ws_message(
       mist.continue(state)
     }
     mist.Text("createRoom") -> {
-      let room_name = word.noun() <> "_" <> word.verb() <> "_" <> word.adverb()
+      let room_name = safe_noun() <> "_" <> safe_verb() <> "_" <> word.adverb()
       chip.register(connection_registry, room_name, state.subject)
       // the ws doesn't care which rooms its in
       // it being a registry is what makes it in a room
