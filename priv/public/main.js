@@ -291,6 +291,7 @@ window.addEventListener('load', () => {
   ws.addCallback({
     callback: () => {
       votesVisible = false;
+      votingArea.querySelector('.my_vote').classList.remove('my_vote');
       [...document.querySelectorAll("#vote_area .vote_card:not(.my_vote)")].forEach(card => {
         card.classList.add("hidden_vote")
       })
