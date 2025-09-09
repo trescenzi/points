@@ -276,7 +276,7 @@ window.addEventListener('load', () => {
         card.classList.remove("hidden_vote")
       })
       const voteCards = [...document.querySelectorAll("#vote_area .vote_card")];
-      const votes = voteCards.map(card => card.dataset.vote ? parseInt(card.dataset.vote, 10) : 0)
+      const votes = voteCards.map(card => parseInt(card.dataset.vote, 10)).filter(vote => vote)
       const sum = votes.reduce((sum, vote) => sum + vote, 0)
       const mean = (sum / votes.length).toPrecision(4);
       const std = Math.sqrt(votes.map(vote => Math.pow(vote - mean, 2)).reduce((a, b) => a + b) / votes.length).toPrecision(4);
