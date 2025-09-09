@@ -65,7 +65,6 @@ function connect(endpoint) {
 }
 
 function drawVote({vote, user, user_type}, myVote, hidden = true) {
-  console.log('drawing vote', vote, user, user_type);
   const hasntVoted = vote === -1 || vote == null;
   const div = document.createElement('div');
   const front = document.createElement('div');
@@ -100,15 +99,14 @@ function drawVote({vote, user, user_type}, myVote, hidden = true) {
   div.appendChild(front);
   div.appendChild(back);
   myVote && div.classList.add("my_vote");
-  hidden && div.classList.add("hidden_vote");
+  hidden && !myVote && div.classList.add("hidden_vote");
   user_type === "spectator" && div.classList.add("hidden")
   return div;
 }
 
 function drawVotes(votes, currentUser, votesVisible) {
-  console.log("drawing votes", votes);
   const voteDivs = Object.entries(votes)
-    .map(([userId, vote]) => drawVote(vote, userId === currentUser, userId !== currentUser, votesVisible))
+    .map(([userId, vote]) => drawVote(vote, userId === currentUser, !votesVisible))
     // your vote is always first
     .sort((a, b) => a.classList.contains("my_vote") ? -1 : b.classList.contains("my_vote") ? 1 : 0)
   document.querySelector("#vote_area").replaceChildren(...voteDivs); 
@@ -140,7 +138,6 @@ window.addEventListener('load', () => {
   ws.addCallback({
     callback: (message) => {
       const votes = JSON.parse(message.replace("votes|", ""));
-      console.log("GOT VOTES", votes);
       drawVotes(votes, ws.get_id(), votesVisible);
     },
     filter: matchesResponse("connect")
@@ -158,12 +155,10 @@ window.addEventListener('load', () => {
     }
     vote = e.target.dataset?.quantity;
     if (vote) {
-      console.log(e);
       card.classList.add("my_vote");
       ws.send(JSON.stringify({command: "vote", value: `${roomName}:${vote}`}));
       delete main.dataset.vote;
       setTimeout(() => main.dataset.vote = vote, 10)
-      console.log(vote);
     }
   }));
 
@@ -269,7 +264,6 @@ window.addEventListener('load', () => {
   ws.addCallback({
     callback: (message) => {
       const votes = JSON.parse(message.replace("votes|", ""));
-      console.log("GOT VOTES", votes);
       drawVotes(votes, ws.get_id(), votesVisible);
     },
     filter: matchesResponse("votes")
